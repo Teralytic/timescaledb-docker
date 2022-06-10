@@ -1,14 +1,14 @@
 name: Release Docker Image
 on:
-  push:
-    branches: [ release_docker, dev-build ]
+  # push:
+  #   branches: [ release_docker, dev-build ]
   workflow_dispatch:
     inputs:
       version:
         description: 'Version to release'
         required: true
 env:
-  ORG: timescale #timescaledev
+  ORG: teralytic
   TS_VERSION: ${{ github.event.inputs.version || '2.5.0' }}
 jobs:
 
@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pg: [12, 13, 14]
+        pg: [12]
         oss: [ "", "-oss" ]
     steps:
     - uses: actions/checkout@v2
@@ -42,26 +42,4 @@ jobs:
 
     - name: Build and push multi-platform Docker image for TimescaleDB
       run: make multi${{ matrix.oss }} ORG=$ORG PG_VER=pg${{ matrix.pg }} TS_VERSION=$TS_VERSION PREV_EXTRA="${{ matrix.oss }}"
-
-  # Build bitnami images of TimscaleDB.
-  # The images are built only for amd64, since it is the only supported architecture in the base image bitname/postgresql.
-  # The images are only built for TSL code.
-  timescaledb-bitnami:
-
-    name: PG${{ matrix.pg }}-bitnami
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        pg: [12, 13, 14]
-
-    steps:
-    - uses: actions/checkout@v2
-
-    - name: Login to DockerHub Registry
-      run: echo ${{ secrets.DOCKERHUB_TOKEN }} | docker login -u ${{ secrets.DOCKERHUB_USER }} --password-stdin
-
-    - name: Build and push amd64 Docker image for TimescaleDB bitnami
-      run: make push ORG=$ORG PG_VER=pg${{ matrix.pg }} TS_VERSION=$TS_VERSION
-      working-directory: bitnami
 
