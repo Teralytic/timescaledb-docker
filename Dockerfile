@@ -35,7 +35,7 @@ RUN rm -f $(pg_config --sharedir)/extension/timescaledb*mock*.sql \
 # Now build image and copy in tools
 ############################
 ARG PG_VERSION
-FROM postgres:${PG_VERSION}-alpine
+FROM postgres:${PG_VERSION}-bullseye
 ARG OSS_ONLY
 
 LABEL maintainer="Timescale https://www.timescale.com"
@@ -45,35 +45,19 @@ COPY --from=tools /go/bin/* /usr/local/bin/
 COPY --from=oldversions /usr/local/lib/postgresql/timescaledb-*.so /usr/local/lib/postgresql/
 COPY --from=oldversions /usr/local/share/postgresql/extension/timescaledb--*.sql /usr/local/share/postgresql/extension/
 
-ARG TS_VERSION
-RUN set -ex \
-    && apk add --no-cache --virtual .fetch-deps \
-                ca-certificates \
-                git \
-                openssl \
-                openssl-dev \
-                tar \
-    && mkdir -p /build/ \
-    && git clone https://github.com/timescale/timescaledb /build/timescaledb \
-    \
-    && apk add --no-cache --virtual .build-deps \
-                coreutils \
-                dpkg-dev dpkg \
-                gcc \
-                krb5-dev \
-                libc-dev \
-                make \
-                cmake \
-                util-linux-dev \
-    \
-    # Build current version \
-    && cd /build/timescaledb && rm -fr build \
-    && git checkout ${TS_VERSION} \
-    && ./bootstrap -DCMAKE_BUILD_TYPE=RelWithDebInfo -DREGRESS_CHECKS=OFF -DTAP_CHECKS=OFF -DGENERATE_DOWNGRADE_SCRIPT=ON -DWARNINGS_AS_ERRORS=OFF -DPROJECT_INSTALL_METHOD="docker"${OSS_ONLY} \
-    && cd build && make install \
-    && cd ~ \
-    \
-    && if [ "${OSS_ONLY}" != "" ]; then rm -f $(pg_config --pkglibdir)/timescaledb-tsl-*.so; fi \
-    && apk del .fetch-deps .build-deps \
-    && rm -rf /build \
-    && sed -r -i "s/[#]*\s*(shared_preload_libraries)\s*=\s*'(.*)'/\1 = 'timescaledb,\2'/;s/,'/'/" /usr/local/share/postgresql/postgresql.conf.sample
+RUN apt-get update
+
+RUN apt-get install gnupg postgresql-common apt-transport-https lsb-release wget systemctl -y
+
+RUN /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+
+RUN echo "deb https://packagecloud.io/timescale/timescaledb/debian/ $(lsb_release -c -s) main" > /etc/apt/sources.list.d/timescaledb.list
+
+RUN wget --quiet -O - https://packagecloud.io/timescale/timescaledb/gpgkey | apt-key add -
+
+RUN apt-get update
+
+RUN apt-get install -y postgresql-${PG_VERSION}-postgis-3
+
+RUN apt-get install -y timescaledb-2-postgresql-${PG_VERSION}
+
