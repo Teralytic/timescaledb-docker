@@ -1,7 +1,7 @@
 NAME=timescaledb
 # Default is to timescaledev to avoid unexpected push to the main repo
 # Set ORG to timescale in the caller
-ORG=timescaledev
+ORG=teralytic
 PG_VER=pg12
 PG_VER_NUMBER=$(shell echo $(PG_VER) | cut -c3-)
 TS_VERSION=main
@@ -54,7 +54,7 @@ default: image
 	touch .build_$(TS_VERSION)_$(PG_VER)_oss
 
 .build_$(TS_VERSION)_$(PG_VER): Dockerfile
-	docker build --build-arg PG_VERSION=$(PG_VER_NUMBER) $(TAG) .
+	docker build --build-arg PG_VERSION=$(PG_VER_NUMBER) --build-arg PREV_IMAGE=$(PREV_IMAGE) $(TAG) .
 	touch .build_$(TS_VERSION)_$(PG_VER)
 
 image: .build_$(TS_VERSION)_$(PG_VER)
