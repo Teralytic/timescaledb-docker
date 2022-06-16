@@ -49,7 +49,7 @@ COPY --from=oldversions /usr/local/share/postgresql/extension/timescaledb--*.sql
 
 RUN apt-get update
 
-RUN apt-get install gnupg postgresql-common apt-transport-https lsb-release wget systemctl -y
+RUN apt-get install gnupg postgresql-common apt-transport-https lsb-release wget -y
 
 RUN /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
 
