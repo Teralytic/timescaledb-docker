@@ -42,7 +42,6 @@ default: image
 	test -n "$(PREV_IMAGE)"  # PREV_IMAGE
 	test -n "$(PG_VER_NUMBER)" #something
 	test -n "$(PLATFORM)" #yes
-	docker buildx rm multibuild
 	docker buildx create --platform $(PLATFORM) --name multibuild --use
 	docker buildx inspect multibuild --bootstrap
 	docker buildx build --platform $(PLATFORM) \
