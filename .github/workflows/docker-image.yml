@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         pg: [12]
-        oss: [ "", "-oss" ]
+        oss: [ "" ]
     steps:
     - uses: actions/checkout@v2
 
@@ -41,5 +41,5 @@ jobs:
       run: echo ${{ secrets.DOCKERHUB_TOKEN }} | docker login -u ${{ secrets.DOCKERHUB_USER }} --password-stdin
 
     - name: Build and push multi-platform Docker image for TimescaleDB
-      run: make multi${{ matrix.oss }} ORG=$ORG PG_VER=pg${{ matrix.pg }} TS_VERSION=$TS_VERSION PREV_EXTRA="${{ matrix.oss }}"
+      run: make multi${{ matrix.oss }} ORG=$ORG MY_PG_VERSION=${{ matrix.pg }} TS_VERSION=$TS_VERSION
 

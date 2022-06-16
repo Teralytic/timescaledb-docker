@@ -10,7 +10,7 @@ PREV_TS_IMAGE="timescale/timescaledb:$(PREV_TS_VERSION)-pg$(PG_VER_NUMBER)$(PREV
 PREV_IMAGE=$(shell if docker pull $(PREV_TS_IMAGE) >/dev/null; then echo "$(PREV_TS_IMAGE)"; else echo "postgres:$(PG_VER_NUMBER)-alpine"; fi )
 # Beta releases should not be tagged as latest, so BETA is used to track.
 BETA=$(findstring rc,$(TS_VERSION))
-PLATFORM=linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64
+PLATFORM=linux/amd64,linux/arm64
 
 # PUSH_MULTI can be set to nothing for dry-run without pushing during multi-arch build
 PUSH_MULTI=--push
@@ -24,11 +24,12 @@ default: image
 .multi_$(TS_VERSION)_$(PG_VER)_oss: Dockerfile
 	test -n "$(TS_VERSION)"  # TS_VERSION
 	test -n "$(PREV_TS_VERSION)"  # PREV_TS_VERSION
+	test -n "$(PG_VER_NUMBER)"
 	docker buildx create --platform $(PLATFORM) --name multibuild --use
 	docker buildx inspect multibuild --bootstrap
 	docker buildx build --platform $(PLATFORM) \
 		--build-arg TS_VERSION=$(TS_VERSION) \
-		--build-arg PG_VERSION=$(PG_VER_NUMBER) \
+		--build-arg MY_PG_VERSION=$(PG_VER_NUMBER) \
 		--build-arg PREV_IMAGE=$(PREV_IMAGE) \
 		--build-arg OSS_ONLY=" -DAPACHE_ONLY=1" \
 		$(TAG_OSS) $(PUSH_MULTI) .
@@ -39,22 +40,33 @@ default: image
 	test -n "$(TS_VERSION)"  # TS_VERSION
 	test -n "$(PREV_TS_VERSION)"  # PREV_TS_VERSION
 	test -n "$(PREV_IMAGE)"  # PREV_IMAGE
+	test -n "$(PG_VER_NUMBER)" #something
+	test -n "$(PLATFORM)" #yes
+	docker buildx rm multibuild
 	docker buildx create --platform $(PLATFORM) --name multibuild --use
 	docker buildx inspect multibuild --bootstrap
 	docker buildx build --platform $(PLATFORM) \
 		--build-arg TS_VERSION=$(TS_VERSION) \
 		--build-arg PREV_IMAGE=$(PREV_IMAGE) \
-		--build-arg PG_VERSION=$(PG_VER_NUMBER) \
+		--build-arg MY_PG_VERSION=$(PG_VER_NUMBER) \
 		$(TAG) $(PUSH_MULTI) .
 	touch .multi_$(TS_VERSION)_$(PG_VER)
 	docker buildx rm multibuild
 
 .build_$(TS_VERSION)_$(PG_VER)_oss: Dockerfile
-	docker build --build-arg OSS_ONLY=" -DAPACHE_ONLY=1" --build-arg PG_VERSION=$(PG_VER_NUMBER) $(TAG_OSS) .
+	test -n "$(PG_VER_NUMBER)"
+	docker build --build-arg OSS_ONLY=" -DAPACHE_ONLY=1" --build-arg MY_PG_VERSION=$(PG_VER_NUMBER) $(TAG_OSS) .
 	touch .build_$(TS_VERSION)_$(PG_VER)_oss
 
 .build_$(TS_VERSION)_$(PG_VER): Dockerfile
-	docker build --build-arg PG_VERSION=$(PG_VER_NUMBER) --build-arg PREV_IMAGE=$(PREV_IMAGE) $(TAG) .
+	test -n "TS_VERSION=$(TS_VERSION)"
+	test -n "PREV_TS_VERSION=$(PREV_TS_VERSION)"  
+	test -n "PREV_TS_IMAGE=$(PREV_TS_IMAGE)"  
+	test -n "PREV_IMAGE=$(PREV_IMAGE)"  
+	test -n "PLATFORM=$(PLATFORM)"  
+	test -n "PG_VER_NUMBER=$(PG_VER_NUMBER)"  
+
+	docker build --build-arg MY_PG_VERSION=$(PG_VER_NUMBER) --build-arg PREV_IMAGE=$(PREV_IMAGE) $(TAG) .
 	touch .build_$(TS_VERSION)_$(PG_VER)
 
 image: .build_$(TS_VERSION)_$(PG_VER)

@@ -1,4 +1,4 @@
-ARG PG_VERSION
+ARG MY_PG_VERSION
 ARG PREV_IMAGE
 ARG TS_VERSION
 ############################
@@ -6,6 +6,7 @@ ARG TS_VERSION
 ############################
 ARG GO_VERSION=1.14.0
 FROM golang:${GO_VERSION}-alpine AS tools
+ARG MY_PG_VERSION
 
 ENV TOOLS_VERSION 0.8.1
 
@@ -22,9 +23,9 @@ RUN apk update && apk add --no-cache git \
 ############################
 # Grab old versions from previous version
 ############################
-ARG PG_VERSION
 ARG PREV_IMAGE
 FROM ${PREV_IMAGE} AS oldversions
+ARG MY_PG_VERSION
 # Remove update files, mock files, and all but the last 5 .so/.sql files
 RUN rm -f $(pg_config --sharedir)/extension/timescaledb*mock*.sql \
     && if [ -f $(pg_config --pkglibdir)/timescaledb-tsl-1*.so ]; then rm -f $(ls -1 $(pg_config --pkglibdir)/timescaledb-tsl-1*.so | head -n -5); fi \
@@ -34,9 +35,10 @@ RUN rm -f $(pg_config --sharedir)/extension/timescaledb*mock*.sql \
 ############################
 # Now build image and copy in tools
 ############################
-ARG PG_VERSION
-FROM postgres:${PG_VERSION}-bullseye
+ARG MY_PG_VERSION
+FROM postgres:${MY_PG_VERSION}-bullseye
 ARG OSS_ONLY
+ARG MY_PG_VERSION
 
 LABEL maintainer="Timescale https://www.timescale.com"
 
@@ -57,7 +59,7 @@ RUN wget --quiet -O - https://packagecloud.io/timescale/timescaledb/gpgkey | apt
 
 RUN apt-get update
 
-RUN apt-get install -y postgresql-${PG_VERSION}-postgis-3
+RUN apt-get install -y postgresql-${MY_PG_VERSION}-postgis-3
 
-RUN apt-get install -y timescaledb-2-postgresql-${PG_VERSION}
+RUN apt-get install -y timescaledb-2-postgresql-${MY_PG_VERSION}
 
